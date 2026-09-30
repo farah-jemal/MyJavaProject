@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Espace Professeur — IHEC</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-brand">IHEC</div>
+    <div class="topbar-info">
+        <span class="topbar-role role-prof">Professeur</span>
+        <span class="topbar-email" th:text="${user.email}">prof@ihec.tn</span>
+        <a th:href="@{/comptes/logout}" class="btn btn-logout">Deconnexion</a>
+    </div>
+</header>
+
+<div class="workspace workspace-prof">
+    <!-- Panneau gauche : formulaire -->
+    <aside class="panel panel-form">
+        <h3 class="panel-title" id="formTitle">Ajouter une Evaluation</h3>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <form id="evalForm" th:action="@{/evaluations/ajouter}" method="post" enctype="multipart/form-data">
+            <input type="hidden" id="editId" name="editId" value="">
+
+            <div class="form-group">
+                <label>Type</label>
+                <select name="typeEval" id="typeEval" required>
+                    <option value="DS">DS</option>
+                    <option value="Examen">Examen</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Titre</label>
+                <input type="text" name="titre" id="titreInput" placeholder="ex: DS N1 Semestre 1" required>
+            </div>
+            <div class="form-group">
+                <label>Matiere</label>
+                <input type="text" name="matiereNom" id="matiereSearch"
+                       placeholder="ex: Mathematiques Financieres"
+                       autocomplete="off"
+                       oninput="searchMatiere(this.value)">
+                <input type="hidden" name="matiereId" id="matiereId">
+                <div class="matiere-suggestions" id="matiereSuggestions"></div>
+            </div>
+            <div class="form-group" id="niveauGroup">
+                <label>Niveau <small style="color:#999">(optionnel si nouvelle matière)</small></label>
+                <input type="text" name="matiereNiveau" id="niveauInput" placeholder="ex: L2, L3, M1...">
+            </div>
+            <div class="form-group" id="filiereGroup">
+                <label>Filiere <small style="color:#999">(optionnel si nouvelle matière)</small></label>
+                <input type="text" name="matiereFiliere" id="filiereInput" placeholder="ex: BI, Informatique...">
+            </div>
+            <div class="form-group">
+                <label>Enonce et Correction</label>
+                <textarea name="correction" id="correctionInput" rows="5" placeholder="Saisissez le corrige detaille..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Fichier Joint (PDF/DOCX)</label>
+                <div class="file-input-wrapper">
+                    <input type="text" id="fileNameDisplay" placeholder="Aucun fichier selectionne" readonly>
+                    <label for="fichierInput" class="btn btn-browse">Parcourir</label>
+                    <input type="file" id="fichierInput" name="fichier" accept=".pdf,.docx"
+                           onchange="updateFileName(this)" style="display:none">
+                </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary btn-full" id="btnSubmit">Ajouter l'Evaluation</button>
+                <button type="button" class="btn btn-logout" id="btnAnnuler" onclick="resetForm()" style="display:none">Annuler</button>
+            </div>
+        </form>
+    </aside>
+
+    <!-- Panneau droit : liste -->
+    <main class="panel panel-list-prof">
+        <h3 class="panel-title">
+            Liste des Evaluations
+            <span class="count-badge" th:text="'(' + ${#lists.size(evaluations)} + ')'"></span>
+        </h3>
+        <div class="eval-list" id="evalListProf">
+            <div th:each="eval : ${evaluations}"
+                 class="eval-item"
+                 th:classappend="${eval.aFichierJoint()} ? ' has-file' : ''"
+                 th:data-id="${eval.id}"
+                 onclick="selectEvalProf(this)">
+                <span class="eval-type-badge"
+                      th:classappend="${eval.type.toLowerCase() == 'ds'} ? ' badge-ds' : ' badge-examen'"
+                      th:text="${eval.type}">DS</span>
+                <span class="eval-title" th:text="${eval.titre}">Titre</span>
+                <span class="eval-meta"
+                      th:text="${eval.matiere.nom + ' - ' + eval.matiere.filiere + ' - ' + eval.matiere.niveau}">
+                </span>
+                <span th:if="${eval.aFichierJoint()}" class="file-indicator">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+        <div class="prof-actions">
+            <button class="btn btn-danger" id="btnSupprimer" onclick="supprimerEval()" disabled>Supprimer</button>
+            <button class="btn btn-open" id="btnOuvrirProf" onclick="ouvrirFichierProf()" disabled>Ouvrir Fichier</button>
+        </div>
+    </main>
+</div>
+
+<script th:src="@{/app.js}"></script>
+<script th:inline="javascript">
+    let selectedId = null;
+    let selectedFichier = false;
+    const matieres = /*[[${matieres}]]*/ [];
+
+    function selectEvalProf(el) {
+        document.querySelectorAll('.eval-item').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedId = el.dataset.id;
+        selectedFichier = el.classList.contains('has-file');
+        document.getElementById('btnSupprimer').disabled = false;
+        document.getElementById('btnOuvrirProf').disabled = !selectedFichier;
+        chargerEvalDansFormulaire(selectedId);
+    }
+
+    function chargerEvalDansFormulaire(id) {
+        fetch('/evaluations/modifier/' + id)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('formTitle').textContent = 'Modifier l\'Evaluation';
+                document.getElementById('btnSubmit').textContent = 'Enregistrer les modifications';
+                document.getElementById('btnAnnuler').style.display = 'inline-block';
+                document.getElementById('evalForm').action = '/evaluations/modifier/' + id;
+
+                document.getElementById('titreInput').value = data.titre;
+                document.getElementById('typeEval').value = data.type;
+                document.getElementById('correctionInput').value = data.correction || '';
+                document.getElementById('matiereId').value = data.matiereId;
+                document.getElementById('matiereSearch').value = data.matiereNom;
+                document.getElementById('fileNameDisplay').value =
+                    data.aFichier ? 'Fichier existant (choisir pour remplacer)' : 'Aucun fichier selectionne';
+
+                // Masquer niveau/filière (matière déjà existante)
+                document.getElementById('niveauGroup').style.display = 'none';
+                document.getElementById('filiereGroup').style.display = 'none';
+                document.getElementById('niveauInput').value = '';
+                document.getElementById('filiereInput').value = '';
+            });
+    }
+
+    function resetForm() {
+        document.getElementById('formTitle').textContent = 'Ajouter une Evaluation';
+        document.getElementById('btnSubmit').textContent = 'Ajouter l\'Evaluation';
+        document.getElementById('btnAnnuler').style.display = 'none';
+        document.getElementById('evalForm').action = '/evaluations/ajouter';
+        document.getElementById('evalForm').reset();
+        document.getElementById('fileNameDisplay').value = '';
+        document.getElementById('matiereId').value = '';
+        document.getElementById('niveauGroup').style.display = 'block';
+        document.getElementById('filiereGroup').style.display = 'block';
+        document.getElementById('niveauInput').value = '';
+        document.getElementById('filiereInput').value = '';
+        document.querySelectorAll('.eval-item').forEach(e => e.classList.remove('selected'));
+        selectedId = null;
+        document.getElementById('btnSupprimer').disabled = true;
+        document.getElementById('btnOuvrirProf').disabled = true;
+    }
+
+    function supprimerEval() {
+        if (!selectedId) return;
+        if (confirm('Supprimer cette evaluation ?')) {
+            window.location.href = '/evaluations/supprimer/' + selectedId;
+        }
+    }
+
+    function ouvrirFichierProf() {
+        if (!selectedId || !selectedFichier) return;
+        window.open('/evaluations/fichier/' + selectedId, '_blank');
+    }
+
+    function updateFileName(input) {
+        const display = document.getElementById('fileNameDisplay');
+        display.value = input.files[0] ? input.files[0].name : 'Aucun fichier selectionne';
+    }
+
+    function searchMatiere(val) {
+        const suggestions = document.getElementById('matiereSuggestions');
+
+        // Réinitialiser l'id si l'utilisateur retape
+        document.getElementById('matiereId').value = '';
+
+        // Afficher les champs niveau/filière (matière pas encore sélectionnée)
+        document.getElementById('niveauGroup').style.display = 'block';
+        document.getElementById('filiereGroup').style.display = 'block';
+
+        if (!val || val.length < 1) { suggestions.innerHTML = ''; return; }
+        const matches = matieres.filter(m =>
+            m.nom.toLowerCase().includes(val.toLowerCase())
+        );
+        suggestions.innerHTML = matches.map(m =>
+            `<div class="suggestion-item" onclick="selectMatiere(${m.id}, '${m.nom}', '${m.niveau}', '${m.filiere}')">
+                ${m.nom} (${m.niveau} - ${m.filiere})
+            </div>`
+        ).join('');
+    }
+
+    function selectMatiere(id, nom, niveau, filiere) {
+        document.getElementById('matiereId').value = id;
+        document.getElementById('matiereSearch').value = nom;
+        document.getElementById('matiereSuggestions').innerHTML = '';
+        // Masquer niveau/filière (matière existante sélectionnée)
+        document.getElementById('niveauGroup').style.display = 'none';
+        document.getElementById('filiereGroup').style.display = 'none';
+        document.getElementById('niveauInput').value = '';
+        document.getElementById('filiereInput').value = '';
+    }
+</script>
+</body>
+</html>

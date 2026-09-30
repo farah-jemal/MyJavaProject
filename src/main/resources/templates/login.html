@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion — IHEC</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body class="login-page">
+<div class="login-box">
+    <div class="login-header">
+        <div class="logo-mark">IH</div>
+        <h1 th:text="${typeLabel != null ? 'Connexion ' + typeLabel : 'Connexion'}">Connexion</h1>
+    </div>
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+    <form th:action="@{/comptes/login}" method="post">
+        <input type="hidden" name="type" th:value="${typeParam != null ? typeParam : 'ETUDIANT'}">
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" placeholder="ex: etudiant@ihec.tn" required>
+        </div>
+        <div class="form-group">
+            <label for="motDePasse">Mot de passe</label>
+            <input id="motDePasse" type="password" name="motDePasse" placeholder="Votre mot de passe" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+    </form>
+
+    <div class="login-links">
+        <a href="/">Retour au choix</a>
+        <a th:href="@{/comptes/inscrire}">Creer un compte</a>
+    </div>
+
+    <div class="login-hint">
+        <small>Comptes de test :<br>
+            Etudiant: etudiant@ihec.tn / etudiant123<br>
+            Prof: prof@ihec.tn / prof123</small>
+    </div>
+</div>
+</body>
+</html>

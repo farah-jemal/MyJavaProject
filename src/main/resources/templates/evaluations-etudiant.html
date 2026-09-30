@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Espace Etudiant — IHEC</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-brand">IHEC</div>
+    <div class="topbar-info">
+        <span class="topbar-role role-etudiant">Etudiant</span>
+        <span class="topbar-email" th:text="${user.email}">etudiant@ihec.tn</span>
+        <a th:href="@{/comptes/logout}" class="btn btn-logout">Deconnexion</a>
+    </div>
+</header>
+
+<div class="workspace">
+    <!-- panneau de gauche : filtres pour chercher une évaluation spécifique -->
+    <aside class="panel panel-filters">
+        <h3 class="panel-title">Filtres de Recherche</h3>
+        <form id="filterForm">
+            <div class="filter-group">
+                <label>Filiere</label>
+                <input type="text" id="filterFiliere" placeholder="ex: Finance, Compta...">
+            </div>
+            <div class="filter-group">
+                <label>Niveau</label>
+                <input type="text" id="filterNiveau" placeholder="ex: L1, L2, L3, M1...">
+            </div>
+            <div class="filter-group">
+                <label>Matiere</label>
+                <input type="text" id="filterMatiere" placeholder="ex: Mathematiques...">
+            </div>
+            <button type="button" class="btn btn-filter" onclick="filtrerEvaluations()">Filtrer</button>
+        </form>
+    </aside>
+
+    <!-- Panneau centre : liste -->
+    <main class="panel panel-list">
+        <h3 class="panel-title">Liste des Evaluations</h3>
+        <div class="eval-list" id="evalList">
+            <div th:each="eval : ${evaluations}"
+                 class="eval-item"
+                 th:classappend="${eval.aFichierJoint()} ? ' has-file' : ''"
+                 th:data-id="${eval.id}"
+                 th:data-titre="${eval.titre}"
+                 th:data-matiere="${eval.matiere.nom}"
+                 th:data-niveau="${eval.matiere.niveau}"
+                 th:data-filiere="${eval.matiere.filiere}"
+                 th:data-type="${eval.type}"
+                 th:data-correction="${eval.correction != null ? eval.correction : ''}"
+                 th:data-fichier="${eval.aFichierJoint()}"
+                 onclick="selectEval(this)">
+                <span class="eval-type-badge"
+                      th:classappend="${eval.type.toLowerCase() == 'ds'} ? ' badge-ds' : ' badge-examen'"
+                      th:text="${eval.type}">DS</span>
+                <span class="eval-title" th:text="${eval.titre}">Titre</span>
+                <span class="eval-meta"
+                      th:text="${eval.matiere.nom + ' - ' + eval.matiere.filiere + ' - ' + eval.matiere.niveau}">
+                </span>
+                <span th:if="${eval.aFichierJoint()}" class="file-indicator" title="Fichier joint disponible">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Panneau droit : corrigé -->
+    <aside class="panel panel-corrected">
+        <h3 class="panel-title">Corrige</h3>
+        <div class="corrected-content" id="correctedContent">
+            <p class="corrected-placeholder">Selectionnez une evaluation pour voir son corrige...</p>
+        </div>
+        <div class="corrected-actions">
+            <button class="btn btn-view" id="btnVoir" onclick="voirCorrige()" disabled>Voir le Corrige</button>
+            <button class="btn btn-open" id="btnOuvrir" onclick="ouvrirFichier()" disabled>Ouvrir le Fichier Joint</button>
+        </div>
+    </aside>
+</div>
+<script th:src="@{/app.js}"></script>
+<script th:inline="javascript">
+    let selectedEval = null;
+  // quand on clique sur une évaluation, on la marque comme sélectionnée
+    // et on active les boutons du panneau droit
+    function selectEval(el) {
+        document.querySelectorAll('.eval-item').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedEval = {
+            id: el.dataset.id,
+            titre: el.dataset.titre,
+            matiere: el.dataset.matiere,
+            niveau: el.dataset.niveau,
+            filiere: el.dataset.filiere,
+            type: el.dataset.type,
+            correction: el.dataset.correction,
+            fichier: el.dataset.fichier === 'true'
+        };
+        document.getElementById('btnVoir').disabled = false;
+        document.getElementById('btnOuvrir').disabled = !selectedEval.fichier;
+    }
+
+    function voirCorrige() {
+        if (!selectedEval) return;
+        const content = document.getElementById('correctedContent');
+        content.innerHTML = `
+            <div class="corrected-detail">
+                <div class="corrected-type ${selectedEval.type.toLowerCase()}">${selectedEval.type}: ${selectedEval.titre}</div>
+                <div class="corrected-meta">${selectedEval.matiere} | ${selectedEval.filiere} | ${selectedEval.niveau}</div>
+                <div class="corrected-separator"></div>
+                <div class="corrected-label">CORRECTION:</div>
+                <div class="corrected-separator"></div>
+                <div class="corrected-text">${selectedEval.correction || 'Aucune correction disponible.'}</div>
+            </div>
+        `;
+    }
+
+    function ouvrirFichier() {
+        if (!selectedEval || !selectedEval.fichier) return;
+        window.open('/evaluations/fichier/' + selectedEval.id, '_blank');
+    }
+
+    function filtrerEvaluations() {
+        const filiere = document.getElementById('filterFiliere').value.toLowerCase();
+        const niveau = document.getElementById('filterNiveau').value.toLowerCase();
+        const matiere = document.getElementById('filterMatiere').value.toLowerCase();
+        document.querySelectorAll('.eval-item').forEach(el => {
+            const f = el.dataset.filiere.toLowerCase();
+            const n = el.dataset.niveau.toLowerCase();
+            const m = el.dataset.matiere.toLowerCase();
+            const visible = (!filiere || f.includes(filiere))
+                         && (!niveau  || n.includes(niveau))
+                         && (!matiere || m.includes(matiere));
+            el.style.display = visible ? '' : 'none';
+        });
+    }
+</script>
+</body>
+</html>

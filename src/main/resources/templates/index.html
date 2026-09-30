@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>IHEC — Gestion des Evaluations</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body class="choice-page">
+<div class="choice-box">
+    <div class="choice-header">
+        <div class="logo-mark">IH</div>
+        <h1>IHEC</h1>
+        <p>Gestion des DS et Examens</p>
+    </div>
+    <div class="choice-buttons">
+        <a href="/comptes/login?type=ETUDIANT" class="choice-btn choice-etudiant">
+            <span class="choice-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+            </span>
+            <span class="choice-label">Etudiant</span>
+        </a>
+        <a href="/comptes/login?type=PROF" class="choice-btn choice-prof">
+            <span class="choice-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <path d="M8 21h8M12 17v4"/>
+                    <path d="M7 8h10M7 12h6"/>
+                </svg>
+            </span>
+            <span class="choice-label">Professeur</span>
+        </a>
+    </div>
+    <div class="choice-footer" th:if="${nbEvaluations != null}">
+        <span th:text="${nbEvaluations + ' evaluation(s) enregistree(s)'}">0 evaluation(s)</span>
+    </div>
+</div>
+</body>
+</html>

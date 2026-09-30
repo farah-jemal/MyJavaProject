@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Inscription - IHEC</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body class="login-page">
+<div class="login-box">
+    <h1> IHEC</h1>
+    <p class="subtitle">Créer un compte</p>
+
+    <!-- Message d'erreur -->
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <!-- Message de succès -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+    <form th:action="@{/comptes/inscrire}" method="post">
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email"
+                   placeholder="ex: etudiant@ihec.tn"
+                   pattern=".+@ihec\.tn"
+                   title="L'email doit être de la forme @ihec.tn"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" name="motDePasse" placeholder="Votre mot de passe" required>
+        </div>
+
+        <div class="form-group">
+            <label>Type d'utilisateur</label>
+            <select name="type" required>
+                <option value="">-- Choisir --</option>
+                <option value="ETUDIANT"> Étudiant</option>
+                <option value="PROF"> Professeur</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%">
+             Créer mon compte
+        </button>
+    </form>
+
+    <p class="text-center mt-2">
+        Déjà un compte ? <a th:href="@{/comptes/login}">Se connecter</a>
+    </p>
+</div>
+</body>
+</html>
